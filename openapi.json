@@ -1,0 +1,242 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Helper Script API",
+    "version": "1.0.0",
+    "description": "API untuk konversi file Excel menjadi SQL script (insert/update/delete/upsert)."
+  },
+  "servers": [
+    { "url": "http://localhost:3000", "description": "Local" }
+  ],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Excel SQL" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/excel-sql/insert": {
+      "post": {
+        "tags": ["Excel SQL"],
+        "summary": "Convert Excel to INSERT SQL",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SQL generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SqlResponse" },
+                "examples": {
+                  "ok": {
+                    "value": { "sql": "INSERT INTO \"my_table\" (\"id\", \"name\")\nVALUES\n(1, 'Alice'),\n(2, 'Bob');" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/excel-sql/update": {
+      "post": {
+        "tags": ["Excel SQL"],
+        "summary": "Convert Excel to UPDATE SQL",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SQL generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SqlResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/excel-sql/delete": {
+      "post": {
+        "tags": ["Excel SQL"],
+        "summary": "Convert Excel to DELETE SQL",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SQL generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SqlResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/excel-sql/upsert": {
+      "post": {
+        "tags": ["Excel SQL"],
+        "summary": "Convert Excel to UPSERT SQL",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SQL generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SqlResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DbType": {
+        "type": "string",
+        "enum": ["postgres", "mysql", "mssql"],
+        "example": "postgres"
+      },
+      "InsertForm": {
+        "type": "object",
+        "required": ["file", "table"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "Excel file (.xlsx/.xls)"
+          },
+          "table": { "type": "string", "example": "my_table" },
+          "dbType": { "$ref": "#/components/schemas/DbType" },
+          "batch": { "type": "boolean", "default": true },
+          "asFile": { "type": "boolean", "default": true }
+        }
+      },
+      "UpdateForm": {
+        "type": "object",
+        "required": ["file", "table", "whereFields"],
+        "properties": {
+          "file": { "type": "string", "format": "binary" },
+          "table": { "type": "string", "example": "my_table" },
+          "dbType": { "$ref": "#/components/schemas/DbType" },
+          "batch": { "type": "boolean", "default": true },
+          "asFile": { "type": "boolean", "default": true },
+          "whereFields": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["id", "type"]
+          }
+        }
+      },
+      "DeleteForm": {
+        "type": "object",
+        "required": ["file", "table"],
+        "properties": {
+          "file": { "type": "string", "format": "binary" },
+          "table": { "type": "string", "example": "my_table" },
+          "dbType": { "$ref": "#/components/schemas/DbType" },
+          "batch": { "type": "boolean", "default": true },
+          "asFile": { "type": "boolean", "default": true }
+        },
+        "description": "WHERE akan dibentuk dari semua kolom pada setiap baris Excel."
+      },
+      "UpsertForm": {
+        "type": "object",
+        "required": ["file", "table", "uniqueFields"],
+        "properties": {
+          "file": { "type": "string", "format": "binary" },
+          "table": { "type": "string", "example": "my_table" },
+          "dbType": { "$ref": "#/components/schemas/DbType" },
+          "batch": { "type": "boolean", "default": true },
+          "asFile": { "type": "boolean", "default": true },
+          "uniqueFields": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["id"]
+          }
+        }
+      },
+      "SqlResponse": {
+        "type": "object",
+        "properties": {
+          "sql": { "type": "string", "description": "Generated SQL script" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    }
+  }
+}
+

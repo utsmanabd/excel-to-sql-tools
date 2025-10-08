@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to SQL Converter</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .result h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .sql-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            width: 100%;
+            min-height: 200px;
+            resize: vertical;
+            border: 1px solid #4a5568;
+        }
+        #copyBtn {
+            margin-top: 10px;
+            background: #28a745;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+        #copyBtn:hover {
+            background: #218838;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #dc3545;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel to SQL Converter</h1>
+        
+        <form id="converterForm">
+            <div class="form-group">
+                <label for="file">Excel File (.xlsx/.xls)</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="table">Table Name</label>
+                <input type="text" id="table" name="table" placeholder="my_table" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="dbType">Database Type</label>
+                <select id="dbType" name="dbType">
+                    <option value="postgres">PostgreSQL</option>
+                    <option value="mysql">MySQL</option>
+                    <option value="mssql">SQL Server</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="operation">Operation</label>
+                <select id="operation" name="operation">
+                    <option value="insert">INSERT</option>
+                    <option value="update">UPDATE</option>
+                    <option value="delete">DELETE</option>
+                    <option value="upsert">UPSERT</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="batch" name="batch" checked>
+                    <label for="batch">Batch mode (multiple rows in one statement)</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="asFile" name="asFile" checked>
+                    <label for="asFile">Download as .sql file</label>
+                </div>
+            </div>
+            
+            <div class="form-group hidden" id="whereFieldsGroup">
+                <label for="whereFields">WHERE Fields (comma-separated)</label>
+                <input type="text" id="whereFields" name="whereFields" placeholder="id,type">
+                <small>Fields to use in WHERE clause for UPDATE</small>
+            </div>
+            
+            <div class="form-group hidden" id="uniqueFieldsGroup">
+                <label for="uniqueFields">Unique Fields (comma-separated)</label>
+                <input type="text" id="uniqueFields" name="uniqueFields" placeholder="id">
+                <small>Fields that uniquely identify records for UPSERT</small>
+            </div>
+            
+            <button type="submit" id="submitBtn">Generate SQL</button>
+        </form>
+        
+        <div id="result" class="result hidden">
+            <h3>Generated SQL:</h3>
+            <textarea id="sqlOutput" class="sql-output" readonly placeholder="SQL will appear here..."></textarea>
+            <button type="button" id="copyBtn" onclick="copyToClipboard()">📋 Copy SQL</button>
+        </div>
+        
+        <div id="error" class="error hidden">
+            <h3>Error:</h3>
+            <div id="errorMessage"></div>
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            <p>Generating SQL...</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('converterForm');
+        const operation = document.getElementById('operation');
+        const whereFieldsGroup = document.getElementById('whereFieldsGroup');
+        const uniqueFieldsGroup = document.getElementById('uniqueFieldsGroup');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const loading = document.getElementById('loading');
+        const sqlOutput = document.getElementById('sqlOutput');
+        const errorMessage = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Show/hide fields based on operation
+        operation.addEventListener('change', () => {
+            whereFieldsGroup.classList.toggle('hidden', operation.value !== 'update');
+            uniqueFieldsGroup.classList.toggle('hidden', operation.value !== 'upsert');
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const operationType = formData.get('operation');
+            
+            // Hide previous results
+            result.classList.add('hidden');
+            error.classList.add('hidden');
+            loading.classList.remove('hidden');
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/excel-sql/${operationType}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const asFile = formData.get('asFile') === 'on';
+                    
+                    if (asFile) {
+                        // Download file
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${formData.get('table')}_${operationType}_${Date.now()}.sql`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    } else {
+                        // Show SQL in textarea - check content type first
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            sqlOutput.value = data.sql;
+                        } else {
+                            // Fallback: treat as plain text
+                            const sql = await response.text();
+                            sqlOutput.value = sql;
+                        }
+                        result.classList.remove('hidden');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    errorMessage.textContent = errorData.error || 'An error occurred';
+                    error.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorMessage.textContent = err.message;
+                error.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Copy to clipboard function
+        function copyToClipboard() {
+            const sqlTextarea = document.getElementById('sqlOutput');
+            const textToCopy = sqlTextarea.value;
+            
+            if (!textToCopy.trim()) {
+                alert('No SQL to copy!');
+                return;
+            }
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    // Fallback to execCommand
+                    fallbackCopy();
+                });
+            } else {
+                // Fallback to execCommand
+                fallbackCopy();
+            }
+            
+            function fallbackCopy() {
+                // Focus and select all text
+                sqlTextarea.focus();
+                sqlTextarea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showCopySuccess();
+                    } else {
+                        // Manual selection fallback
+                        sqlTextarea.setSelectionRange(0, textToCopy.length);
+                        try {
+                            document.execCommand('copy');
+                            showCopySuccess();
+                        } catch (e) {
+                            alert('Failed to copy. Please select all text (Ctrl+A) and copy manually (Ctrl+C).');
+                        }
+                    }
+                } catch (err) {
+                    alert('Failed to copy. Please select all text (Ctrl+A) and copy manually (Ctrl+C).');
+                }
+            }
+            
+            function showCopySuccess() {
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '#28a745';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
