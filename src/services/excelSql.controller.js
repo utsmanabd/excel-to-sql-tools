@@ -71,7 +71,6 @@ export async function excelToUpdate(req, res) {
       table: body.table,
       dbType: body.dbType,
       whereFields: body.whereFields,
-      batch: body.batch,
     });
     if (body.asFile) {
       const filename = `${body.table}_update_${Date.now()}.sql`;
@@ -94,7 +93,6 @@ export async function excelToDelete(req, res) {
       rows,
       table: body.table,
       dbType: body.dbType,
-      batch: body.batch,
     });
     if (body.asFile) {
       const filename = `${body.table}_delete_${Date.now()}.sql`;
@@ -120,7 +118,6 @@ export async function excelToUpsert(req, res) {
       table: body.table,
       dbType: body.dbType,
       uniqueFields: body.uniqueFields,
-      batch: body.batch,
     });
     if (body.asFile) {
       const filename = `${body.table}_upsert_${Date.now()}.sql`;

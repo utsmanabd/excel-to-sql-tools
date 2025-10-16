@@ -154,7 +154,7 @@
                 </select>
             </div>
             
-            <div class="form-group">
+            <div class="form-group hidden" id="batchGroup">
                 <div class="checkbox-group">
                     <input type="checkbox" id="batch" name="batch" checked>
                     <label for="batch">Batch mode (multiple rows in one statement)</label>
@@ -202,6 +202,7 @@
     <script>
         const form = document.getElementById('converterForm');
         const operation = document.getElementById('operation');
+        const batchGroup = document.getElementById('batchGroup');
         const whereFieldsGroup = document.getElementById('whereFieldsGroup');
         const uniqueFieldsGroup = document.getElementById('uniqueFieldsGroup');
         const result = document.getElementById('result');
@@ -211,11 +212,19 @@
         const errorMessage = document.getElementById('errorMessage');
         const submitBtn = document.getElementById('submitBtn');
 
+        // Function to update form fields visibility
+        function updateFormFields() {
+            const op = operation.value;
+            batchGroup.classList.toggle('hidden', op !== 'insert');
+            whereFieldsGroup.classList.toggle('hidden', op !== 'update');
+            uniqueFieldsGroup.classList.toggle('hidden', op !== 'upsert');
+        }
+
+        // Initialize form fields on page load
+        updateFormFields();
+
         // Show/hide fields based on operation
-        operation.addEventListener('change', () => {
-            whereFieldsGroup.classList.toggle('hidden', operation.value !== 'update');
-            uniqueFieldsGroup.classList.toggle('hidden', operation.value !== 'upsert');
-        });
+        operation.addEventListener('change', updateFormFields);
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();

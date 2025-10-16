@@ -1,6 +1,6 @@
 import { quoteIdentifier, sqlValue } from './common.js';
 
-export function buildUpdateSQL({ rows, table, dbType, whereFields = [], batch = true }) {
+export function buildUpdateSQL({ rows, table, dbType, whereFields = [] }) {
   if (!Array.isArray(rows) || rows.length === 0) return '';
   if (!whereFields || whereFields.length === 0) throw new Error('whereFields is required for update');
 
@@ -19,7 +19,7 @@ export function buildUpdateSQL({ rows, table, dbType, whereFields = [], batch = 
   };
 
   const statements = rows.map((row) => `UPDATE ${qTable} SET ${buildSetClause(row)} WHERE ${buildWhereClause(row)};`);
-  return batch ? statements.join('\n') : statements.join('\n');
+  return statements.join('\n');
 }
 
 

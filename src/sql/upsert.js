@@ -1,6 +1,6 @@
 import { quoteIdentifier, sqlValue } from './common.js';
 
-export function buildUpsertSQL({ rows, table, dbType, uniqueFields = [], batch = true }) {
+export function buildUpsertSQL({ rows, table, dbType, uniqueFields = [] }) {
   if (!Array.isArray(rows) || rows.length === 0) return '';
   if (!uniqueFields || uniqueFields.length === 0) throw new Error('uniqueFields is required for upsert');
 
